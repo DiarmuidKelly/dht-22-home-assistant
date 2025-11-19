@@ -8,8 +8,9 @@ import os
 
 # --- Configuration ---
 # These should match the filenames used in your main.py's logger configuration.
-CURRENT_LOG_FILE = '../app.log'
-BACKUP_LOG_FILE = '../app.old.log'
+CURRENT_LOG_FILE = "../app.log"
+BACKUP_LOG_FILE = "../app.old.log"
+
 
 def print_log_file(filename):
     """Opens and prints the contents of a given log file."""
@@ -17,7 +18,7 @@ def print_log_file(filename):
     print(f"--- Reading: {filename} ---")
     print("=" * 50)
     try:
-        with open(filename, 'r') as f:
+        with open(filename, "r") as f:
             # Read and print the file content line by line
             line_count = 0
             for line in f:

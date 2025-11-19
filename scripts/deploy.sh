@@ -60,6 +60,7 @@ echo "Files to deploy:"
 echo "  • main.py"
 echo "  • logging.py"
 echo "  • secrets.py"
+echo "  • VERSION"
 echo ""
 
 read -p "Deploy to Pico W? (y/N) " -n 1 -r
@@ -92,6 +93,9 @@ mpremote cp logging.py : 2>/dev/null && echo -e " ${GREEN}✓${NC}" || echo -e "
 
 echo -ne "${YELLOW}Uploading secrets.py...${NC}"
 mpremote cp secrets.py : 2>/dev/null && echo -e " ${GREEN}✓${NC}" || echo -e " ${RED}✗${NC}"
+
+echo -ne "${YELLOW}Uploading VERSION...${NC}"
+mpremote cp VERSION : 2>/dev/null && echo -e " ${GREEN}✓${NC}" || echo -e " ${RED}✗${NC}"
 
 echo ""
 echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
