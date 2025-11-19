@@ -1,0 +1,32 @@
+# Secrets and credentials
+secrets.py
+
+# MicroPython compiled files
+*.mpy
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+app.log
+
+# Temporary files
+*.tmp
+.micropico
+
+# CMake files
+pico_sdk_import.cmake
