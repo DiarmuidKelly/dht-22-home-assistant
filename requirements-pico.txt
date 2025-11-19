@@ -1,0 +1,4 @@
+# MicroPython dependencies for Raspberry Pi Pico W
+# Install with: mpremote mip install <package>
+
+umqtt.simple
