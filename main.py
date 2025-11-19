@@ -40,18 +40,43 @@ led = Pin("LED", Pin.OUT)
 # --- Helper Functions ---
 def get_temperature(dht_sensor):
     """
-    Gets temperature from DHT22 sensor and properly handles negative values.
-    The DHT22 sensor returns temperature as an integer representing tenths of degrees.
-    For negative temperatures, bit 15 is set as a sign flag (0x8000).
+    Gets temperature from DHT22 sensor with configurable encoding.
+
+    DHT22 sensors from different manufacturers use different temperature encodings:
+
+    1. Standard (sign-magnitude):
+       - Bit 15 = sign bit (0=positive, 1=negative)
+       - Bits 0-14 = magnitude in tenths of degrees
+       - MicroPython's DHT library assumes this encoding
+
+    2. Non-standard (2's complement):
+       - Full 16-bit signed integer in 2's complement format
+       - Some manufacturers use this instead
+       - Results in impossible readings (e.g., -3262°C) if interpreted as sign-magnitude
+
+    Configure secrets.DHT_USE_2S_COMPLEMENT based on your sensor type.
+
+    Related issues:
+    - https://github.com/micropython/micropython-lib/issues/611
+    - https://forum.micropython.org/viewtopic.php?t=9416
     """
-    temp = dht_sensor.temperature()
-    # Check if the sign bit (bit 15) is set for negative temperature
-    if temp & 0x8000:
-        # Remove the sign bit and make it negative
-        temp = -(temp & 0x7FFF) / 10.0
+
+    if secrets.DHT_USE_2S_COMPLEMENT:
+        # Non-standard DHT22: Use 2's complement decoding
+        # Read raw 16-bit value directly from buffer (bytes 2 and 3)
+        value = dht_sensor.buf[2] << 8 | dht_sensor.buf[3]
+
+        # Convert from 2's complement if bit 15 is set
+        if value & 0x8000:
+            value -= 0x10000
+
+        # Convert from tenths of degrees to degrees
+        return value * 0.1
+
     else:
-        temp = temp / 10.0
-    return temp
+        # Standard DHT22: Use library's sign-magnitude interpretation
+        # The library already handles this correctly
+        return dht_sensor.temperature()
 
 
 # --- WiFi Connection ---
@@ -141,7 +166,7 @@ def publish_ha_discovery(client):
         "unique_id": f"{secrets.DEVICE_ID}_temperature",
         "device_class": "temperature",
         "state_topic": STATE_TOPIC,
-        # "unit_of_measurement": "°C",
+        # "unit_of_measurement": "°C", # For me this gave errors on HA side
         "value_template": "{{ value_json.temperature | round(1) }}",
         "availability_topic": AVAILABILITY_TOPIC,
         "payload_available": "online",
@@ -184,7 +209,7 @@ def main():
     wlan = network.WLAN(network.STA_IF)
     wlan.active(True)
 
-    dht_sensor = dht.DHT22(Pin(22))
+    dht_sensor = dht.DHT22(Pin(secrets.DHT_PIN))
 
     # --- Main Reconnection Loop ---
     while True:
@@ -227,7 +252,9 @@ def main():
                 led.toggle()
                 # C. Check for any incoming MQTT messages (and keep-alive)
                 mqtt_client.check_msg()
-                sleep(28)  # Wait for the next cycle (total loop time ~30s)
+                sleep(
+                    secrets.REFRESH_INTERVAL
+                )  # Wait for the next cycle (total loop time ~30s)
 
         except Exception as e:
             # This block catches all other errors, primarily network/MQTT connection issues.
