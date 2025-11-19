@@ -92,9 +92,7 @@ fi
 git add VERSION CHANGELOG.md
 git commit -m "chore: bump version to ${NEW_VERSION}
 
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-
-Co-Authored-By: Claude <noreply@anthropic.com>"
+Automated version bump by GitHub Actions"
 
 echo -e "${GREEN}✓ Committed version bump${NC}"
 
