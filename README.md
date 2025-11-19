@@ -129,7 +129,3 @@ MIT License - See [LICENSE](LICENSE) file.
 - [Changelog](CHANGELOG.md)
 - [Branch Protection](.github/BRANCH_PROTECTION.md)
 - [Issues](https://github.com/DiarmuidKelly/dht-22-ha/issues)
-
----
-
-**Version**: 1.0.0 | **Last Updated**: 2025-11-19
