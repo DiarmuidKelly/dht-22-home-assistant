@@ -13,16 +13,16 @@ The repository uses a GitHub Ruleset named **"PR on to main"** with the followin
 ### Rules Enabled
 
 #### 1. Pull Request Requirements
-- **Required approvals**: 1
+- **Required approvals**: 0 (maintainer can merge own PRs)
 - **Dismiss stale reviews on push**: Yes
-- **Require code owner review**: Yes (requires `.github/CODEOWNERS` file)
-- **Require conversation resolution**: Yes
+- **Require code owner review**: No
+- **Require conversation resolution**: No
 - **Allowed merge methods**: Squash and Rebase only
 
 #### 2. Required Status Checks
-- **Status check**: `validate-pr-title` (must pass before merge)
+- **Status check**: `Validate PR Title Format` (must pass before merge)
 - **Strict mode**: Yes (branch must be up to date)
-- **Enforce on creation**: Yes
+- **Enforce on creation**: No (allows branch creation without checks)
 
 #### 3. Branch Protection
 - **Prevent deletion**: Yes
@@ -34,19 +34,24 @@ The repository uses a GitHub Ruleset named **"PR on to main"** with the followin
 
 ## What This Means
 
-✅ **Anyone can contribute:**
+✅ **External contributors:**
 - Fork the repository
-- Create feature branches
+- Create feature branches in their fork
 - Submit Pull Requests
+- Repository owner reviews and merges
+
+✅ **Repository owner (you):**
+- Create feature branches in the repository
+- Submit Pull Requests
+- Merge own PRs (no approval needed)
 
 ❌ **Protections enforced:**
 - No direct pushes to `main` (even repository owner)
 - All changes must go through Pull Requests
-- PR titles must be valid (`validate-pr-title` check)
-- Only code owner (@DiarmuidKelly) can approve PRs
-- PRs require 1 approval before merge
-- All conversations must be resolved
+- PR titles must be valid (`Validate PR Title Format` check)
+- Branch must be up-to-date with main before merging
 - Linear history enforced (no merge commits)
+- Repository owner can merge own PRs without approval
 
 🚀 **Automated workflow:**
 - When PR is merged → Release automatically created
@@ -100,8 +105,8 @@ Create PR with title: `some random changes`
 Create PR with title: `[PATCH] fix sensor reading`
 
 **Expected**:
-- ✅ `validate-pr-title` check passes
-- Ready to merge (after approval)
+- ✅ `Validate PR Title Format` check passes
+- Ready to merge (no approval needed for owner)
 
 ### Test 4: Merge triggers release
 Merge the PR
@@ -119,9 +124,12 @@ Your current ruleset configuration (exported from GitHub):
 {
   "name": "PR on to main",
   "target": "branch",
-  "enforcement": "disabled",  // Change this to "active"
+  "source_type": "Repository",
+  "source": "DiarmuidKelly/dht-22-home-assistant",
+  "enforcement": "active",
   "conditions": {
     "ref_name": {
+      "exclude": [],
       "include": ["refs/heads/main"]
     }
   },
@@ -135,28 +143,31 @@ Your current ruleset configuration (exported from GitHub):
     {
       "type": "pull_request",
       "parameters": {
-        "required_approving_review_count": 1,
+        "required_approving_review_count": 0,
         "dismiss_stale_reviews_on_push": true,
-        "require_code_owner_review": true,
+        "required_reviewers": [],
+        "require_code_owner_review": false,
         "require_last_push_approval": false,
-        "required_review_thread_resolution": true,
+        "required_review_thread_resolution": false,
+        "automatic_copilot_code_review_enabled": false,
         "allowed_merge_methods": ["squash", "rebase"]
       }
+    },
+    {
+      "type": "required_linear_history"
     },
     {
       "type": "required_status_checks",
       "parameters": {
         "strict_required_status_checks_policy": true,
-        "do_not_enforce_on_create": false,
+        "do_not_enforce_on_create": true,
         "required_status_checks": [
           {
-            "context": "validate-pr-title"
+            "context": "Validate PR Title Format",
+            "integration_id": 15368
           }
         ]
       }
-    },
-    {
-      "type": "required_linear_history"
     }
   ],
   "bypass_actors": []
@@ -165,14 +176,16 @@ Your current ruleset configuration (exported from GitHub):
 
 ## Troubleshooting
 
-**"Require code owner review" not working**
-- Make sure `.github/CODEOWNERS` file is committed to main branch
-- GitHub needs to detect the file before the option works
-
-**"validate-pr-title" check not appearing**
+**"Validate PR Title Format" check not appearing**
 - Create a test PR first to trigger the workflow
 - Wait a few minutes for GitHub to register the check
 - Check Actions tab to see if workflow ran
+- Ensure `.github/workflows/pr-validation.yml` has proper permissions
+
+**Can't merge own PR**
+- Verify `required_approving_review_count` is set to `0`
+- Verify `require_code_owner_review` is set to `false`
+- GitHub doesn't allow PR authors to approve their own PRs
 
 **Want to temporarily disable**
 - Settings → Rules → Rulesets → Edit → Change to "Disabled"
@@ -180,18 +193,30 @@ Your current ruleset configuration (exported from GitHub):
 
 ## Workflow Summary
 
+**For repository owner:**
 ```
-Developer Creates PR → validate-pr-title runs
-                              ↓
-                        PR title valid?
-                              ↓
-                    Code owner approves
-                              ↓
-                         Merge PR
-                              ↓
-                  pr-release.yml triggers
-                              ↓
-                    Auto-create release
+Create branch → Push → Create PR → Validate PR Title Format check runs
+                                            ↓
+                                      PR title valid?
+                                            ↓
+                                       Merge PR
+                                            ↓
+                                pr-release.yml triggers
+                                            ↓
+                                  Auto-create release
+```
+
+**For external contributors:**
+```
+Fork repo → Create branch → Push to fork → Create PR → Validate PR Title Format
+                                                              ↓
+                                                        PR title valid?
+                                                              ↓
+                                                   Owner reviews & merges
+                                                              ↓
+                                                  pr-release.yml triggers
+                                                              ↓
+                                                    Auto-create release
 ```
 
 ## Related Files
