@@ -7,30 +7,35 @@
 # - The umqtt.simple library installed on your device.
 #   Install using mpremote: mpremote mip install umqtt.simple
 
-__version__ = "1.0.0"
-
-from machine import Pin, unique_id
-from time import sleep
-import dht
-import network
-from umqtt.simple import MQTTClient
-import ujson
 import secrets
 from logging import init_logger, logger
+from time import sleep
+
+import dht
+import network
+import ujson
+from machine import Pin, unique_id
+from umqtt.simple import MQTTClient
+
+# Read version from VERSION file
+try:
+    with open("VERSION", "r") as f:
+        __version__ = f.read().strip()
+except Exception:
+    __version__ = "unknown"
 
 # --- Global MQTT Client ---
 # This is needed so the interrupt handler can access the client.
 mqtt_client = None
 
 # --- Constants ---
-# You can change this to a unique name for your device
-DEVICE_ID = "pico_w_dht22_1"
-DEVICE_NAME = "Pico DHT22 - 1"
-STATE_TOPIC = f"homeassistant/sensor/{DEVICE_ID}/state"
-AVAILABILITY_TOPIC = f"homeassistant/sensor/{DEVICE_ID}/status"
+
+STATE_TOPIC = f"homeassistant/sensor/{secrets.DEVICE_ID}/state"
+AVAILABILITY_TOPIC = f"homeassistant/sensor/{secrets.DEVICE_ID}/status"
 
 # Onboard LED for status indication
 led = Pin("LED", Pin.OUT)
+
 
 # --- Helper Functions ---
 def get_temperature(dht_sensor):
@@ -48,6 +53,7 @@ def get_temperature(dht_sensor):
         temp = temp / 10.0
     return temp
 
+
 # --- WiFi Connection ---
 def connect_wifi(wlan):
     """Connects to the WiFi network specified in secrets.py with detailed debug status."""
@@ -55,13 +61,13 @@ def connect_wifi(wlan):
     # Provides human-readable status for debugging.
     # See: https://docs.micropython.org/en/latest/library/network.WLAN.html
     status_map = {
-         0: "LINK_DOWN",
-         1: "LINK_JOIN",      # Connecting to an AP
-         2: "LINK_NOIP",      # Connected, but no IP address
-         3: "LINK_UP",        # Connection successful, IP address obtained
-        -1: "LINK_FAIL",      # Connection failed for other reason
-        -2: "LINK_NONET",     # No AP available with the specified SSID
-        -3: "LINK_BADAUTH",   # Incorrect password
+        0: "LINK_DOWN",
+        1: "LINK_JOIN",  # Connecting to an AP
+        2: "LINK_NOIP",  # Connected, but no IP address
+        3: "LINK_UP",  # Connection successful, IP address obtained
+        -1: "LINK_FAIL",  # Connection failed for other reason
+        -2: "LINK_NONET",  # No AP available with the specified SSID
+        -3: "LINK_BADAUTH",  # Incorrect password
     }
 
     wlan.connect(secrets.WIFI_SSID, secrets.WIFI_PASSWORD)
@@ -83,12 +89,13 @@ def connect_wifi(wlan):
     status_string = status_map.get(status, "Unknown Status")
     logger.log(f"WiFi connection status: {status_string} ({status})")
 
-    if status != 3: # 3 is LINK_UP, the success state
-        raise RuntimeError(f'WiFi connection failed: {status_string}')
+    if status != 3:  # 3 is LINK_UP, the success state
+        raise RuntimeError(f"WiFi connection failed: {status_string}")
     else:
-        led.on() # Solid LED indicates successful connection
+        led.on()  # Solid LED indicates successful connection
         logger.log(f"Connected to WiFi. IP address: {wlan.ifconfig()[0]}")
     return wlan
+
 
 # --- MQTT Setup ---
 def setup_mqtt_client():
@@ -96,22 +103,23 @@ def setup_mqtt_client():
     # Use the unique ID of the chip for the MQTT client ID
     logger.log("Attempting set up of MQTT client...")
     try:
-      client_id_hex = ''.join(['%02x' % b for b in unique_id()])
-      client = MQTTClient(
-          client_id=client_id_hex,
-          server=secrets.MQTT_BROKER,
-          user=secrets.MQTT_USER,
-          password=secrets.MQTT_PASSWORD,
-          keepalive=60
-      )
-      # Set last will and testament to mark the device as offline if it disconnects
-      client.set_last_will(AVAILABILITY_TOPIC, "offline", retain=True)
-      logger.log("MQTT client configured successfully.")
-      return client
+        client_id_hex = "".join(["%02x" % b for b in unique_id()])
+        client = MQTTClient(
+            client_id=client_id_hex,
+            server=secrets.MQTT_BROKER,
+            user=secrets.MQTT_USER,
+            password=secrets.MQTT_PASSWORD,
+            keepalive=60,
+        )
+        # Set last will and testament to mark the device as offline if it disconnects
+        client.set_last_will(AVAILABILITY_TOPIC, "offline", retain=True)
+        logger.log("MQTT client configured successfully.")
+        return client
     except Exception as e:
         logger.log(f"Error setting up MQTT client: {e}")
         # Re-raise the exception to be caught by the main loop's fatal error handler.
         raise
+
 
 def publish_ha_discovery(client):
     """
@@ -119,18 +127,18 @@ def publish_ha_discovery(client):
     This allows Home Assistant to automatically add the sensors.
     """
     device_info = {
-          "identifiers": [DEVICE_ID],
-          "name": DEVICE_NAME,
-          "manufacturer": "Raspberry Pi",
-          "model": "Pico W with DHT22",
-          "sw_version": __version__
-      }
+        "identifiers": [secrets.DEVICE_ID],
+        "name": secrets.DEVICE_NAME,
+        "manufacturer": "Raspberry Pi",
+        "model": "Pico W with DHT22",
+        "sw_version": __version__,
+    }
 
     # Temperature Sensor Discovery Configuration
-    temp_config_topic = f"homeassistant/sensor/{DEVICE_ID}_temp/config"
+    temp_config_topic = f"homeassistant/sensor/{secrets.DEVICE_ID}_temp/config"
     temp_payload = {
         "name": "Pico DHT22 Temperature",
-        "unique_id": f"{DEVICE_ID}_temperature",
+        "unique_id": f"{secrets.DEVICE_ID}_temperature",
         "device_class": "temperature",
         "state_topic": STATE_TOPIC,
         # "unit_of_measurement": "°C",
@@ -138,16 +146,16 @@ def publish_ha_discovery(client):
         "availability_topic": AVAILABILITY_TOPIC,
         "payload_available": "online",
         "payload_not_available": "offline",
-        "device": device_info
+        "device": device_info,
     }
     client.publish(temp_config_topic, ujson.dumps(temp_payload), retain=True)
     logger.log(f"Published discovery for Temperature to {temp_config_topic}")
 
     # Humidity Sensor Discovery Configuration
-    hum_config_topic = f"homeassistant/sensor/{DEVICE_ID}_hum/config"
+    hum_config_topic = f"homeassistant/sensor/{secrets.DEVICE_ID}_hum/config"
     hum_payload = {
         "name": "Pico DHT22 Humidity",
-        "unique_id": f"{DEVICE_ID}_humidity",
+        "unique_id": f"{secrets.DEVICE_ID}_humidity",
         "device_class": "humidity",
         "state_topic": STATE_TOPIC,
         "unit_of_measurement": "%",
@@ -155,10 +163,11 @@ def publish_ha_discovery(client):
         "availability_topic": AVAILABILITY_TOPIC,
         "payload_available": "online",
         "payload_not_available": "offline",
-        "device": device_info
+        "device": device_info,
     }
     client.publish(hum_config_topic, ujson.dumps(hum_payload), retain=True)
     logger.log(f"Published discovery for Humidity to {hum_config_topic}")
+
 
 # --- Main Execution ---
 def main():
@@ -168,7 +177,7 @@ def main():
     # --- Logger Configuration ---
     # Initialize the logger. This should be the first thing to run.
     # All subsequent logger.log() calls will use this configuration.
-    logger = init_logger(filename='app.log', max_lines=500)
+    logger = init_logger(filename="app.log", max_lines=500)
     logger.log(f"DHT22 Home Assistant Sensor - Version {__version__}")
 
     # --- Initial Hardware Setup (runs once on boot) ---
@@ -196,7 +205,7 @@ def main():
             # 4. Start the main operational loop
             logger.log("Starting sensor readings and publishing...")
             while True:
-                led.toggle() # Heartbeat blink
+                led.toggle()  # Heartbeat blink
 
                 # A. Read the DHT22 sensor
                 try:
@@ -207,27 +216,32 @@ def main():
                     payload = {"temperature": temperature, "humidity": humidity}
                     # B. Publish the data via MQTT
                     mqtt_client.publish(STATE_TOPIC, ujson.dumps(payload))
-                    logger.log(f"Published: Temp={payload['temperature']:.1f}°C, Hum={payload['humidity']:.1f}%")
+                    logger.log(
+                        f"Published: Temp={payload['temperature']:.1f}°C, Hum={payload['humidity']:.1f}%"
+                    )
                     led.toggle()
                 except (OSError, TypeError) as e:
                     # This specifically catches errors from dht_sensor.measure()
-                    logger.log(f'Failed to read sensor: {e}')
+                    logger.log(f"Failed to read sensor: {e}")
 
                 led.toggle()
                 # C. Check for any incoming MQTT messages (and keep-alive)
                 mqtt_client.check_msg()
-                sleep(28) # Wait for the next cycle (total loop time ~30s)
+                sleep(28)  # Wait for the next cycle (total loop time ~30s)
 
         except Exception as e:
             # This block catches all other errors, primarily network/MQTT connection issues.
             logger.log(f"A connection error occurred: {e}. Resetting connections...")
-            led.off() # Turn off status LED
+            led.off()  # Turn off status LED
             try:
-                if mqtt_client: mqtt_client.disconnect()
-            except Exception: pass
+                if mqtt_client:
+                    mqtt_client.disconnect()
+            except Exception:
+                pass
             mqtt_client = None
             logger.log("Retrying in 15 seconds...")
             sleep(15)
+
 
 if __name__ == "__main__":
     main()
