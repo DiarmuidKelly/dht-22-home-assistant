@@ -17,14 +17,14 @@ MicroPython application for Raspberry Pi Pico (2) W that reads temperature and h
 
 **Hardware:**
 - Raspberry Pi Pico W or Pico 2 W
-- DHT22 (AM2302) sensor
+- DHT22 (AM2302) sensor - Aliexpress version
 - Jumper wires
 
 **Software:**
-- MicroPython on Pico (2) W
-- MicroPython remote control
-- Home Assistant with MQTT broker
-- `umqtt.simple` library
+- MicroPython on Pico (2) W (tested on Pico W v1.25.0 and Pico 2 W 3.4.0; MicroPython v1.26.1 on 2025-09-11)
+- MicroPython remote control (v1.26.1)
+- Home Assistant (CORE: v2025.7.3, OS: v15.2) with Mosquitto MQTT broker (v6.5.1)
+- `umqtt.simple` library (tested 1.3.4)
 
 **Wiring:**
 ```
@@ -93,9 +93,30 @@ DEVICE_NAME = "Pico DHT22 - 1"      # Friendly name in Home Assistant
 
 ### Hardware Configuration
 
-Edit `main.py` to customize hardware settings:
-- Sensor pin: `dht.DHT22(Pin(22))` (default GPIO 22)
-- Reading interval: `sleep(28)` (default ~30s total loop time)
+Edit `secrets.py` to customize hardware settings:
+- **Sensor pin**: `DHT_PIN = 22` (default GPIO 22)
+- **Refresh interval**: `REFRESH_INTERVAL = 28` (seconds between readings)
+- **DHT22 encoding**: `DHT_USE_2S_COMPLEMENT = True/False` (see below)
+
+#### DHT22 Temperature Encoding
+
+Different DHT22 manufacturers use different temperature encodings:
+
+- **Standard (sign-magnitude)**: Most common, supported natively by MicroPython
+- **Non-standard (2's complement)**: Some manufacturers use this variant
+
+**How to identify your sensor type:**
+
+If you see impossible negative temperatures like `-3262.1°C` instead of reasonable values (e.g., `-14.7°C`), your sensor uses 2's complement encoding.
+
+**Configuration:**
+```python
+# In secrets.py:
+DHT_USE_2S_COMPLEMENT = True   # For non-standard sensors showing -3262°C readings
+DHT_USE_2S_COMPLEMENT = False  # For standard DHT22 sensors
+```
+
+See [GitHub issue #611](https://github.com/micropython/micropython-lib/issues/611) for technical details.
 
 ## Home Assistant
 
@@ -119,9 +140,9 @@ Device info includes manufacturer, model, software version, and online/offline s
 
 **Sensor Issues:**
 - Verify wiring (see diagram above)
-- Check GPIO pin in code
+- Check GPIO pin in `secrets.py` (`DHT_PIN`)
 - DHT22 needs 2-second minimum between reads
-- Negative temps: Update to v1.0.0+
+- **Impossible negative temperature readings** (e.g., -3262°C): Your DHT22 sensor uses 2's complement encoding. Set `DHT_USE_2S_COMPLEMENT = True` in `secrets.py`. See "DHT22 Temperature Encoding" section above for details.
 
 **View Logs:**
 ```bash
