@@ -114,6 +114,8 @@ Your PR will be merged if:
 - **MINOR** (0.X.0): New features, backward-compatible
 - **MAJOR** (X.0.0): Breaking changes, incompatible API
 
+**Note:** You don't need to manually update version numbers. When your PR is merged, the CI/CD workflow automatically updates the `VERSION` file and `__version__` in the code based on your PR title.
+
 ## Questions?
 
 - Check [README.md](README.md) for project overview

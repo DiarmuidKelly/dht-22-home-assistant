@@ -6,7 +6,7 @@ from time import sleep
 # led_pin = Pin("LED")
 # pwm = PWM(led_pin)
 # For an external LED on GPIO pin 15
-led_pin = Pin(15) 
+led_pin = Pin(15)
 pwm = PWM(led_pin)
 # ... rest of the code is the same
 
@@ -35,4 +35,4 @@ except KeyboardInterrupt:
     print("\nStopping demo.")
     # It's good practice to clean up
     pwm.duty_u16(0)  # Turn LED off
-    pwm.deinit()     # De-initialize the PWM channel
+    pwm.deinit()  # De-initialize the PWM channel

@@ -1,9 +1,9 @@
 # DHT22 Home Assistant Sensor
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+![Version](https://img.shields.io/github/v/release/DiarmuidKelly/dht-22-ha?label=version)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
-MicroPython application for Raspberry Pi Pico W that reads temperature and humidity from a DHT22 sensor and publishes to Home Assistant via MQTT with automatic discovery.
+MicroPython application for Raspberry Pi Pico (2) W that reads temperature and humidity from a DHT22 sensor and publishes to Home Assistant via MQTT with automatic discovery.
 
 ## Features
 
@@ -16,18 +16,19 @@ MicroPython application for Raspberry Pi Pico W that reads temperature and humid
 ## Requirements
 
 **Hardware:**
-- Raspberry Pi Pico W
+- Raspberry Pi Pico W or Pico 2 W
 - DHT22 (AM2302) sensor
 - Jumper wires
 
 **Software:**
-- MicroPython on Pico W
+- MicroPython on Pico (2) W
+- MicroPython remote control
 - Home Assistant with MQTT broker
-- `umqtt.simple` library (auto-installed)
+- `umqtt.simple` library
 
 **Wiring:**
 ```
-DHT22          Pico W
+DHT22          Pico 2 W
 -----          ------
 VCC     --->   3.3V or VBUS
 DATA    --->   GPIO 22
@@ -37,11 +38,11 @@ GND     --->   GND
 ## Quick Start
 
 ```bash
-# 1. Install MicroPython on your Pico W
-# Download from: https://micropython.org/download/rp2-pico-w/
+# 1. Install MicroPython on your Pico 2 W
+# Download from: https://micropython.org/download/RPI_PICO2_W/
 
-# 2. Install mpremote
-pip install mpremote
+# 2. Install mpremote from: https://docs.micropython.org/en/latest/reference/mpremote.html
+pipx install mpremote
 
 # 3. Configure credentials
 cp secrets.example.py secrets.py
@@ -63,6 +64,7 @@ mpremote mip install umqtt.simple
 mpremote cp main.py :
 mpremote cp logging.py :
 mpremote cp secrets.py :
+mpremote cp VERSION :
 
 # Run
 mpremote run main.py
@@ -70,10 +72,30 @@ mpremote run main.py
 
 ## Configuration
 
-Edit `main.py` to customize:
-- Device ID/Name: `DEVICE_ID`, `DEVICE_NAME`
+### secrets.py
+
+Edit `secrets.py` to configure your credentials and device settings:
+
+```python
+# WiFi credentials
+WIFI_SSID = "YourWiFiSSID"
+WIFI_PASSWORD = "YourWiFiPassword"
+
+# MQTT broker settings
+MQTT_BROKER = "192.168.1.100"  # IP address or hostname of your MQTT broker
+MQTT_USER = "your_mqtt_user"   # MQTT username (leave empty if not required)
+MQTT_PASSWORD = "your_mqtt_pw"  # MQTT password (leave empty if not required)
+
+# Device identification (customize for each sensor)
+DEVICE_ID = "pico_w_dht22_1"        # Unique ID for this device
+DEVICE_NAME = "Pico DHT22 - 1"      # Friendly name in Home Assistant
+```
+
+### Hardware Configuration
+
+Edit `main.py` to customize hardware settings:
 - Sensor pin: `dht.DHT22(Pin(22))` (default GPIO 22)
-- Reading interval: `sleep(28)` (default ~30s)
+- Reading interval: `sleep(28)` (default ~30s total loop time)
 
 ## Home Assistant
 
@@ -118,6 +140,8 @@ Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for workflow detai
 
 Fork → Branch → Commits → PR with `[MAJOR]`/`[MINOR]`/`[PATCH]` title → Auto-release on merge!
 
+**Note:** Version numbers are automatically updated by CI/CD when PRs merge - no manual version changes needed.
+
 ## License
 
 MIT License - See [LICENSE](LICENSE) file.
@@ -129,7 +153,3 @@ MIT License - See [LICENSE](LICENSE) file.
 - [Changelog](CHANGELOG.md)
 - [Branch Protection](.github/BRANCH_PROTECTION.md)
 - [Issues](https://github.com/DiarmuidKelly/dht-22-ha/issues)
-
----
-
-**Version**: 1.0.0 | **Last Updated**: 2025-11-19
